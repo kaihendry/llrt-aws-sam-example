@@ -10,7 +10,22 @@ Globals:
   Function:
     Timeout: 3
 
+Parameters:
+  DomainName:
+    Type: String
+  ACMCertificateArn:
+    Type: String
+  Version:
+    Type: String
+
 Resources:
+  Gateway:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      Domain:
+        DomainName: !Ref DomainName
+        CertificateArn: !Ref ACMCertificateArn
+
   HelloWorldFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
@@ -19,6 +34,16 @@ Resources:
       Runtime: provided.al2023
       Architectures:
         - x86_64
+      Events:
+        CatchAll:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref Gateway
+            Path: /{proxy+}
+            Method: ANY
+      Environment:
+        Variables:
+          VERSION: !Ref Version
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
@@ -30,3 +55,6 @@ Outputs:
   HelloWorldFunctionIamRole:
     Description: "Implicit IAM Role created for Hello World function"
     Value: !GetAtt HelloWorldFunctionRole.Arn
+  CNAME:
+    Description: The regional domain name for CNAME value
+    Value: !GetAtt [Gateway.DomainName, RegionalDomainName]
